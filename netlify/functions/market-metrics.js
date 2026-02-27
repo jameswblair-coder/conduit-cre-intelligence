@@ -1,23 +1,29 @@
-import { neon } from "@netlify/neon";
+const { neon } = require("@netlify/neon");
 
-export default async (req, context) => {
+exports.handler = async () => {
   try {
+    // automatically uses NETLIFY_DATABASE_URL from Neon extension
     const sql = neon();
 
-    const result = await sql`SELECT NOW() as server_time`;
+    const rows = await sql`SELECT NOW() AS server_time`;
 
-    return new Response(
-      JSON.stringify({
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         ok: true,
         database: "connected",
-        time: result[0].server_time,
-      }),
-      { headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ ok: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+        time: rows[0].server_time
+      })
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ok: false,
+        error: err.message
+      })
+    };
   }
 };
