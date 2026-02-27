@@ -1,7 +1,0 @@
-{
-  "name": "conduit-cre-intelligence",
-  "private": true,
-  "dependencies": {
-    "@netlify/neon": "^1.0.0"
-  }
-}
