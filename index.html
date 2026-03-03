@@ -187,6 +187,17 @@ hr.dv{border:none;border-top:1.5px solid var(--rule);margin:26px 0}
 .fill-med{background:linear-gradient(90deg,var(--gold),var(--gold2))}
 .fill-lo{background:linear-gradient(90deg,var(--mid),#9aaabb)}
 .score-pct{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--navy3);margin-top:6px}
+/* COSTAR LITE */
+.costar-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+.costar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.costar-card{background:var(--white);border:1px solid var(--rule);border-radius:10px;padding:16px;box-shadow:0 1px 10px rgba(28,51,85,.05)}
+.costar-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--navy3);font-weight:600;line-height:1.1}
+.costar-loc{font-size:13px;color:var(--mid);margin:5px 0 10px}
+.costar-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.costar-metric{background:var(--warm);border:1px solid var(--rule);border-radius:8px;padding:8px}
+.costar-metric .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);font-weight:700}
+.costar-metric .v{font-size:14px;color:var(--navy);font-weight:700}
+
 /* ARTICLE LOG */
 .art-log-item{background:var(--warm);border:1px solid var(--rule);border-radius:8px;padding:11px 15px;display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap;margin-bottom:7px}
 .art-log-title{font-size:13px;font-weight:600;color:var(--navy);flex:1;min-width:180px}
@@ -234,6 +245,7 @@ hr.dv{border:none;border-top:1.5px solid var(--rule);margin:26px 0}
     <button class="nb on" onclick="go('dash')"    id="nb-dash">    <span class="ic">📊</span> Dashboard</button>
     <button class="nb"    onclick="go('weekly')"  id="nb-weekly">  <span class="ic">📅</span> Weekly Brief</button>
     <button class="nb"    onclick="go('comps')"   id="nb-comps">   <span class="ic">🔎</span> Comparables</button>
+    <button class="nb"    onclick="go('costar')"  id="nb-costar">  <span class="ic">🏙</span> CoStar London</button>
     <button class="nb"    onclick="go('score')"   id="nb-score">   <span class="ic">🗺</span> Scorecard</button>
     <button class="nb"    onclick="go('article')" id="nb-article"> <span class="ic">📰</span> Paste Article</button>
     <button class="nb"    onclick="go('deals')"   id="nb-deals">   <span class="ic">🏢</span> Deals <span class="nbct" id="ct-deals"></span></button>
@@ -600,6 +612,28 @@ hr.dv{border:none;border-top:1.5px solid var(--rule);margin:26px 0}
   </div>
   <div id="compAISummary"></div>
   <div id="compResults"></div>
+</div>
+
+<!-- COSTAR LONDON -->
+<div class="pg" id="pg-costar">
+  <div class="eyebrow">Market Search Tool</div>
+  <h1 class="pg-title">CoStar-Style London Screener</h1>
+  <p class="pg-sub">A quick CRE search interface for London UK assets: filter by borough, sector, deal type, price band and availability to mimic a CoStar workflow.</p>
+  <div class="card card-gold">
+    <div class="costar-filters">
+      <div><label class="fl">Keyword</label><input type="text" id="cs-kw" placeholder="Property, area, tenant" oninput="runCostar()"></div>
+      <div><label class="fl">Borough / Submarket</label><select id="cs-area" onchange="runCostar()"><option value="">All London</option><option>City of London</option><option>Camden</option><option>Westminster</option><option>Southwark</option><option>Islington</option><option>Canary Wharf</option></select></div>
+      <div><label class="fl">Sector</label><select id="cs-sector" onchange="runCostar()"><option value="">All Sectors</option><option>Office</option><option>Life Sciences</option><option>Industrial / Logistics</option><option>Retail</option><option>Mixed-Use</option></select></div>
+      <div><label class="fl">Deal Type</label><select id="cs-type" onchange="runCostar()"><option value="">Any</option><option>Sale</option><option>Letting</option><option>Development Site</option></select></div>
+      <div><label class="fl">Min £M</label><input type="number" id="cs-min" min="0" placeholder="0" oninput="runCostar()"></div>
+      <div><label class="fl">Max £M</label><input type="number" id="cs-max" min="0" placeholder="500" oninput="runCostar()"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div id="costarCount" style="font-size:14px;color:var(--mid);font-weight:600"></div>
+      <button class="btn bo bsm" onclick="clearCostarFilters()">Clear Filters</button>
+    </div>
+  </div>
+  <div id="costarResults" class="costar-grid"></div>
 </div>
 
 <!-- SCORECARD -->
@@ -1900,6 +1934,67 @@ Respond with ONLY a JSON object: {"summary": "your analysis here"}`;
   }catch(err){toast(apiErrMsg(err),'err');}
 }
 
+// ══ COSTAR LONDON ═════════════════════════════════════════
+const COSTAR_LONDON_SAMPLE = [
+  {name:"Belgrove House",location:"King's Cross",borough:"Camden",sector:"Life Sciences",type:"Sale",priceM:92,areaSqFt:180000,askRent:"£92 psf",yield:"5.3%",status:"Marketing",owner:"Related Argent",availability:"Q2 2026"},
+  {name:"20 Farringdon Street",location:"Farringdon",borough:"City of London",sector:"Office",type:"Letting",priceM:0,areaSqFt:54000,askRent:"£89 psf",yield:"—",status:"Available",owner:"Private REIT",availability:"Immediate"},
+  {name:"The Forge",location:"Bankside",borough:"Southwark",sector:"Mixed-Use",type:"Sale",priceM:145,areaSqFt:210000,askRent:"£78 psf",yield:"4.9%",status:"Under Offer",owner:"Institutional",availability:"Q4 2026"},
+  {name:"Canary Place West",location:"Canary Wharf",borough:"Canary Wharf",sector:"Office",type:"Development Site",priceM:220,areaSqFt:320000,askRent:"£65 psf",yield:"6.1%",status:"Planning",owner:"Docklands JV",availability:"2028"},
+  {name:"White City Innovation Labs",location:"White City",borough:"Westminster",sector:"Life Sciences",type:"Letting",priceM:0,areaSqFt:74000,askRent:"£95 psf",yield:"—",status:"Pre-let Campaign",owner:"University JV",availability:"Q1 2027"},
+  {name:"Islington Distribution Hub",location:"Caledonian Road",borough:"Islington",sector:"Industrial / Logistics",type:"Sale",priceM:58,areaSqFt:86000,askRent:"£32 psf",yield:"5.8%",status:"Marketing",owner:"Logistics Fund",availability:"Immediate"}
+];
+
+function runCostar(){
+  const kw=(document.getElementById('cs-kw')?.value||'').toLowerCase();
+  const area=(document.getElementById('cs-area')?.value||'').toLowerCase();
+  const sector=(document.getElementById('cs-sector')?.value||'').toLowerCase();
+  const type=(document.getElementById('cs-type')?.value||'').toLowerCase();
+  const min=parseFloat(document.getElementById('cs-min')?.value)||0;
+  const maxRaw=parseFloat(document.getElementById('cs-max')?.value);
+  const max=isNaN(maxRaw)?Infinity:maxRaw;
+
+  const results=COSTAR_LONDON_SAMPLE.filter(a=>{
+    const text=JSON.stringify(a).toLowerCase();
+    if(kw && !text.includes(kw)) return false;
+    if(area && !(a.borough||'').toLowerCase().includes(area)) return false;
+    if(sector && !(a.sector||'').toLowerCase().includes(sector)) return false;
+    if(type && !(a.type||'').toLowerCase().includes(type)) return false;
+    if(a.priceM && a.priceM<min) return false;
+    if(a.priceM && a.priceM>max) return false;
+    return true;
+  });
+
+  const c=document.getElementById('costarCount');
+  if(c)c.textContent=`${results.length} listing${results.length===1?'':'s'} shown`;
+  const el=document.getElementById('costarResults');
+  if(!el) return;
+  if(!results.length){
+    el.innerHTML='<div class="card" style="grid-column:1/-1;text-align:center"><p class="dnil">No listings match those filters.</p></div>';
+    return;
+  }
+
+  el.innerHTML=results.map(a=>`<div class="costar-card">
+      <div class="costar-title">${esc(a.name)}</div>
+      <div class="costar-loc">${esc(a.location)} · ${esc(a.borough)} · ${esc(a.sector)}</div>
+      <div class="costar-metrics">
+        <div class="costar-metric"><div class="k">Deal Type</div><div class="v">${esc(a.type)}</div></div>
+        <div class="costar-metric"><div class="k">Guide Price</div><div class="v">${a.priceM?'£'+esc(a.priceM)+'M':'Confidential'}</div></div>
+        <div class="costar-metric"><div class="k">Size</div><div class="v">${esc(String(a.areaSqFt).replace(/\B(?=(\d{3})+(?!\d))/g,','))} sq ft</div></div>
+        <div class="costar-metric"><div class="k">Asking Rent</div><div class="v">${esc(a.askRent)}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>${sbadge(a.status)}</div>
+        <div style="font-size:12px;color:var(--mid)"><strong>Owner:</strong> ${esc(a.owner)} · <strong>Available:</strong> ${esc(a.availability)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function clearCostarFilters(){
+  ['cs-kw','cs-min','cs-max'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['cs-area','cs-sector','cs-type'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  runCostar();
+}
+
 // ══ SCORECARD ══════════════════════════════════════════════════
 const MARKETS=['King\'s Cross','Mayfair','City of London','Canary Wharf','Oxford','Cambridge'];
 
@@ -2991,7 +3086,7 @@ function isLocal() {
 function init(){
   document.getElementById('mdate').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('artDate').value=todayISO();
-  loadState();renderDash();updateKeyBtn();
+  loadState();renderDash();runCostar();updateKeyBtn();
   if(!getKey()){setTimeout(openKeyModal,700);return;}
   // Auto-fetch on startup when hosted (not local file)
   // Auto-fetch disabled on startup to avoid rate limits
